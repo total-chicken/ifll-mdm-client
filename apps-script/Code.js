@@ -8,32 +8,40 @@ const MDM_CLIENT_ID = 'mdm-ui';
 const MDM_SCOPE = 'openid profile email roles offline_access mdm-api-scope prepay-api-scope vee-api-scope eaa-api-scope assetmanagement-api-scope';
 const MDM_API_BASE = '/urjaservice';
 
-const SHEETS = [
-  {
-    id: 'jhansi-independent',
-    label: 'JHANSI INDEPENDENT',
-    rows: JHANSI_INDEPENDENT_ROWS,
-    lineLossKey: 'LINE LOSS (1-13-14)*100',
-    energySoldKey: 'ENERGY SOLD',
-    inputEnergyKey: 'ENERGY CONSUMED (MWH)',
-  },
-  {
-    id: 'jhansi-mau-industrial',
-    label: 'JHANSI MAU INDUSTRIAL',
-    rows: JHANSI_MAU_INDUSTRIAL_ROWS,
-    lineLossKey: 'Line Loss(%)',
-    energySoldKey: 'Sold Energy (MWH)',
-    inputEnergyKey: 'Input Energy (MWH)',
-  },
-  {
-    id: 'mauranipur-independent',
-    label: 'MAURANIPUR INDEPENDENT',
-    rows: MAURANIPUR_INDEPENDENT_ROWS,
-    lineLossKey: 'LINE LOSS (1-13-14)*100',
-    energySoldKey: 'ENERGY SOLD',
-    inputEnergyKey: 'ENERGY CONSUMED (MWH)',
-  },
-];
+// NOTE: this must stay a function, not a top-level const. Apps Script
+// concatenates and runs each file's top-level code in file-name order
+// ("Code" before "Data"), so a top-level const here would try to read
+// JHANSI_INDEPENDENT_ROWS etc. before Data.js has defined them. Wrapping
+// it in a function defers evaluation until something actually calls it,
+// by which point every file has finished loading.
+function getSheetsConfig_() {
+  return [
+    {
+      id: 'jhansi-independent',
+      label: 'JHANSI INDEPENDENT',
+      rows: JHANSI_INDEPENDENT_ROWS,
+      lineLossKey: 'LINE LOSS (1-13-14)*100',
+      energySoldKey: 'ENERGY SOLD',
+      inputEnergyKey: 'ENERGY CONSUMED (MWH)',
+    },
+    {
+      id: 'jhansi-mau-industrial',
+      label: 'JHANSI MAU INDUSTRIAL',
+      rows: JHANSI_MAU_INDUSTRIAL_ROWS,
+      lineLossKey: 'Line Loss(%)',
+      energySoldKey: 'Sold Energy (MWH)',
+      inputEnergyKey: 'Input Energy (MWH)',
+    },
+    {
+      id: 'mauranipur-independent',
+      label: 'MAURANIPUR INDEPENDENT',
+      rows: MAURANIPUR_INDEPENDENT_ROWS,
+      lineLossKey: 'LINE LOSS (1-13-14)*100',
+      energySoldKey: 'ENERGY SOLD',
+      inputEnergyKey: 'ENERGY CONSUMED (MWH)',
+    },
+  ];
+}
 
 // ============================================================
 //  WEB APP ENTRY POINT
@@ -117,7 +125,7 @@ function buildSheetPayload_(sheetCfg) {
 /** Client-callable: returns all three report sheets. */
 function getLineLossPayload() {
   return {
-    sheets: SHEETS.map(buildSheetPayload_),
+    sheets: getSheetsConfig_().map(buildSheetPayload_),
     generatedAt: new Date().toISOString(),
   };
 }
