@@ -5,7 +5,14 @@ app so it runs from a URL instead of `localhost`, while keeping the live MDM
 session server-side (Google's infrastructure), never in the page's
 client-side JS.
 
-**Live URL:** https://script.google.com/macros/s/AKfycbwVNmT_zf9Y38jI_B6d_zd79lyMCaTwqsmd4w7msSNlxKBYK50mQoz1XDDtMFDCAkxR/exec
+**Container-bound to this Sheet:**
+https://docs.google.com/spreadsheets/d/1BM6SNzlFHzyIY9lQfNpZyV58AkEEmFSKo92d-9Z2W14/edit
+
+**Live URL:** https://script.google.com/macros/s/AKfycbzeuNS5_h0_ZQtgr750ocouA6M4Bp2ALGpn28SstEObQ_9x0RmOylEneCEulRj1objx/exec
+
+Owning account: `atif.siddiqui@uppcl.org` (deployed from this account; a
+prior standalone version deployed under `atif.hunk@gmail.com` was undeployed
+and removed).
 
 ## Why this is safe to run from a public URL
 
@@ -43,5 +50,5 @@ clasp push          # push local file edits to the script project
 clasp deploy         # publish a new version at the same URL
 ```
 
-`clasp deployments` lists existing deployments; `clasp open` opens the
-script editor in a browser.
+`clasp deployments` lists existing deployments; `clasp open-script` opens
+the script editor in a browser.
