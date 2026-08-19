@@ -41,3 +41,21 @@ expires, run `npm run login` again with a new OTP.
 `src/api/client.js` exposes `mdmFetch(path, options)` against the API base
 `MDM_API_BASE` (default `/urjaservice`). Add specific read endpoints here
 once their headers/payload/response shapes are provided.
+
+## Line-loss dashboard
+
+```
+npm run dashboard        # http://localhost:5050
+```
+
+Shows the three feeder-report sheets from the source line-loss workbook
+(JHANSI INDEPENDENT, JHANSI MAU INDUSTRIAL, MAURANIPUR INDEPENDENT) as
+tabs, with table columns matching each sheet's own headers exactly. Each
+row is classified good/warning/critical/pending-data/error from its line
+loss reading, with stat tiles, a top-offenders view, search, and filters.
+
+`server/index.js` currently reads the seeded snapshot in `data/*.json`.
+Once the MDM read-endpoint shapes are known, replace that file read with
+an `mdmFetch()` call plus a mapper that outputs rows keyed by the same
+headers — `src/lineloss/config.js` defines the schema and status logic,
+and nothing in the UI needs to change.
