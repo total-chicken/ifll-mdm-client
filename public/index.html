@@ -22,37 +22,67 @@
 
   <nav class="tabs" id="tabs" role="tablist"></nav>
 
-  <main id="sheetView">
-    <section class="stat-row" id="statRow"></section>
+  <main>
+    <div id="reportView">
+      <section class="stat-row" id="statRow"></section>
 
-    <section class="panel" id="topOffenders">
-      <h2 class="panel-title">Highest line loss</h2>
-      <div class="meter-list" id="meterList"></div>
-    </section>
+      <section class="panel" id="topOffenders">
+        <h2 class="panel-title">Highest line loss</h2>
+        <div class="meter-list" id="meterList"></div>
+      </section>
 
-    <section class="panel">
-      <div class="table-toolbar">
-        <input id="searchBox" type="search" placeholder="Search feeder, code, meter no…" class="search-input">
-        <select id="divisionFilter" class="filter-select">
-          <option value="">All divisions</option>
-        </select>
-        <div class="status-chips" id="statusChips">
-          <button class="chip" data-status="">All</button>
-          <button class="chip" data-status="good">Good</button>
-          <button class="chip" data-status="warning">Warning</button>
-          <button class="chip" data-status="critical">Critical</button>
-          <button class="chip" data-status="pending">Pending data</button>
-          <button class="chip" data-status="error">Error</button>
+      <section class="panel">
+        <div class="table-toolbar">
+          <input id="searchBox" type="search" placeholder="Search feeder, code, meter no…" class="search-input">
+          <select id="divisionFilter" class="filter-select">
+            <option value="">All divisions</option>
+          </select>
+          <div class="status-chips" id="statusChips">
+            <button class="chip" data-status="">All</button>
+            <button class="chip" data-status="good">Good</button>
+            <button class="chip" data-status="warning">Warning</button>
+            <button class="chip" data-status="critical">Critical</button>
+            <button class="chip" data-status="pending">Pending data</button>
+            <button class="chip" data-status="error">Error</button>
+          </div>
         </div>
-      </div>
-      <div class="table-scroll">
-        <table id="dataTable">
-          <thead id="tableHead"></thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-      <p class="row-count" id="rowCount"></p>
-    </section>
+        <div class="table-scroll">
+          <table id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <p class="row-count" id="rowCount"></p>
+      </section>
+    </div>
+
+    <div id="meterRegisterView" style="display:none">
+      <section class="panel">
+        <div class="table-toolbar">
+          <button id="addMeterBtn" class="btn-text">+ Add meter</button>
+          <button id="refreshAllBtn" class="btn-text">Refresh all</button>
+          <span class="stat-label" id="meterRegisterHint">Live data, fetched with your own logged-in MDM session.</span>
+        </div>
+        <div class="table-scroll">
+          <table id="meterTable">
+            <thead>
+              <tr>
+                <th>Meter ID</th>
+                <th>Label</th>
+                <th>Last fetched</th>
+                <th>Billing date</th>
+                <th>Energy KWH</th>
+                <th>MD kW</th>
+                <th>Tamper count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="meterTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel" id="meterDetailPanel" style="display:none"></section>
+    </div>
   </main>
 
   <footer class="footer">

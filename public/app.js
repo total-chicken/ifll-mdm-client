@@ -14,7 +14,11 @@ const state = {
   status: '',
   sortKey: null,
   sortDir: 1,
+  meters: [],
+  expandedMeterId: null,
 };
+
+const METER_TAB_ID = 'meter-register';
 
 function applyStoredTheme() {
   const stored = localStorage.getItem('theme');
@@ -44,7 +48,8 @@ function formatNumber(n, digits = 1) {
 function renderTabs() {
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = '';
-  state.sheets.forEach((sheet) => {
+  const allTabs = [...state.sheets, { id: METER_TAB_ID, label: 'METER REGISTER DATA' }];
+  allTabs.forEach((sheet) => {
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (sheet.id === state.activeSheetId ? ' active' : '');
     btn.textContent = sheet.label;
@@ -210,12 +215,191 @@ function renderTable() {
 }
 
 function renderBadge() {
-  const sheet = activeSheet();
   document.getElementById('sourceBadge').textContent = 'sample xlsx data — MDM endpoint not yet wired';
+}
+
+// --- Meter register (live) ---
+
+function getGridData(entry) {
+  return entry.lastResult?.gridData || [];
+}
+
+function parseBillingDate(str) {
+  const m = String(str || '').trim().match(/^(\d{2})-(\d{2})-(\d{4})/);
+  if (!m) return null;
+  return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+}
+
+function latestReading(entry) {
+  const grid = getGridData(entry);
+  if (!grid.length) return null;
+  return grid.slice().sort((a, b) => {
+    const da = parseBillingDate(a['billing Date']);
+    const db = parseBillingDate(b['billing Date']);
+    return (db?.getTime() || 0) - (da?.getTime() || 0);
+  })[0];
+}
+
+function clean(v) {
+  if (v === undefined || v === null) return '—';
+  const s = String(v).trim();
+  return s === '' ? '—' : s;
+}
+
+async function loadMeters() {
+  const res = await fetch('/api/meters');
+  state.meters = await res.json();
+}
+
+function renderMeterTable() {
+  const body = document.getElementById('meterTableBody');
+  if (!state.meters.length) {
+    body.innerHTML = '<tr><td colspan="8" class="stat-label">No meters tracked yet — click "+ Add meter".</td></tr>';
+    return;
+  }
+
+  body.innerHTML = state.meters.map((m) => {
+    const reading = latestReading(m);
+    const errorNote = m.lastError ? `<div class="stat-label" style="color:var(--status-critical)">${m.lastError}</div>` : '';
+    return `
+      <tr class="meter-table-row" data-meter="${m.meterId}">
+        <td>${m.meterId}</td>
+        <td>${clean(m.label)}</td>
+        <td>${m.lastFetchedAt ? new Date(m.lastFetchedAt).toLocaleString() : 'never'}${errorNote}</td>
+        <td>${clean(reading?.['billing Date'])}</td>
+        <td>${clean(reading?.['energy KWH'])}</td>
+        <td>${clean(reading?.['md kW'])}</td>
+        <td>${clean(reading?.['billing Tamper Count'])}</td>
+        <td class="row-actions">
+          <button data-action="fetch" data-meter="${m.meterId}">Fetch</button>
+          <button data-action="edit" data-meter="${m.meterId}">Edit</button>
+          <button data-action="delete" data-meter="${m.meterId}">Remove</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('tr[data-meter]').forEach((tr) => {
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const id = tr.dataset.meter;
+      state.expandedMeterId = state.expandedMeterId === id ? null : id;
+      renderMeterDetail();
+    });
+  });
+
+  body.querySelectorAll('button[data-action]').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.meter;
+      const action = btn.dataset.action;
+      if (action === 'fetch') await fetchMeter(id);
+      else if (action === 'edit') await editMeter(id);
+      else if (action === 'delete') await deleteMeter(id);
+    });
+  });
+}
+
+function renderMeterDetail() {
+  const panel = document.getElementById('meterDetailPanel');
+  if (!state.expandedMeterId) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+
+  const entry = state.meters.find((m) => m.meterId === state.expandedMeterId);
+  const reading = entry && latestReading(entry);
+
+  panel.style.display = '';
+  if (!reading) {
+    panel.innerHTML = `<h2 class="panel-title">${state.expandedMeterId}</h2><p class="stat-label">No data fetched yet for this meter — click "Fetch".</p>`;
+    return;
+  }
+
+  const fields = Object.entries(reading).filter(([k]) => k !== 'meter ID');
+  panel.innerHTML = `
+    <h2 class="panel-title">${state.expandedMeterId} — latest billing cycle (${clean(reading['billing Date'])})</h2>
+    <div class="detail-grid">
+      ${fields.map(([k, v]) => `<div class="detail-field"><div class="k">${k}</div><div class="v">${clean(v)}</div></div>`).join('')}
+    </div>
+  `;
+}
+
+async function fetchMeter(meterId) {
+  const btn = document.querySelector(`button[data-action="fetch"][data-meter="${meterId}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const res = await fetch(`/api/meters/${encodeURIComponent(meterId)}/fetch`, { method: 'POST' });
+    const updated = await res.json();
+    state.meters = state.meters.map((m) => (m.meterId === meterId ? updated : m));
+  } finally {
+    renderMeterTable();
+    renderMeterDetail();
+  }
+}
+
+async function refreshAllMeters() {
+  for (const m of state.meters) {
+    await fetchMeter(m.meterId);
+  }
+}
+
+async function addMeter() {
+  const meterId = window.prompt('Meter ID to track (e.g. GE9447014):');
+  if (!meterId || !meterId.trim()) return;
+  const label = window.prompt('Optional label (feeder name, location, etc.):', '') || '';
+  const res = await fetch('/api/meters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meterId: meterId.trim(), label: label.trim() }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    window.alert(err.error || 'Failed to add meter');
+    return;
+  }
+  state.meters = await res.json();
+  renderMeterTable();
+}
+
+async function editMeter(meterId) {
+  const entry = state.meters.find((m) => m.meterId === meterId);
+  const newMeterId = window.prompt('Change meter ID to:', entry?.meterId || meterId);
+  if (newMeterId === null) return;
+  const label = window.prompt('Label:', entry?.label || '');
+  const res = await fetch(`/api/meters/${encodeURIComponent(meterId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newMeterId: newMeterId.trim(), label: (label || '').trim() }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    window.alert(err.error || 'Failed to update meter');
+    return;
+  }
+  state.meters = await res.json();
+  renderMeterTable();
+}
+
+async function deleteMeter(meterId) {
+  if (!window.confirm(`Stop tracking meter ${meterId}?`)) return;
+  const res = await fetch(`/api/meters/${encodeURIComponent(meterId)}`, { method: 'DELETE' });
+  state.meters = await res.json();
+  if (state.expandedMeterId === meterId) state.expandedMeterId = null;
+  renderMeterTable();
+  renderMeterDetail();
 }
 
 function render() {
   renderTabs();
+
+  const onMeterTab = state.activeSheetId === METER_TAB_ID;
+  document.getElementById('reportView').style.display = onMeterTab ? 'none' : '';
+  document.getElementById('meterRegisterView').style.display = onMeterTab ? '' : 'none';
+
+  if (onMeterTab) {
+    renderMeterTable();
+    renderMeterDetail();
+    return;
+  }
+
   renderStats();
   renderMeterList();
   populateDivisionFilter();
@@ -235,9 +419,11 @@ async function init() {
     renderTable();
   });
   document.querySelector('.chip[data-status=""]').classList.add('active');
+  document.getElementById('addMeterBtn').addEventListener('click', addMeter);
+  document.getElementById('refreshAllBtn').addEventListener('click', refreshAllMeters);
 
-  const res = await fetch('/api/line-loss');
-  const data = await res.json();
+  const [lineLossRes] = await Promise.all([fetch('/api/line-loss'), loadMeters()]);
+  const data = await lineLossRes.json();
   state.sheets = data.sheets;
   state.activeSheetId = data.sheets[0]?.id;
   renderBadge();

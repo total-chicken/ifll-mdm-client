@@ -197,6 +197,43 @@ body {
 }
 .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+.btn-text {
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.btn-text:hover { opacity: 0.9; }
+.btn-text.secondary { background: var(--page); color: var(--text-primary); }
+.btn-text.danger { background: var(--status-critical); }
+
+.meter-table-row { cursor: pointer; }
+.meter-table-row:hover { background: var(--page); }
+.row-actions { display: flex; gap: 6px; }
+.row-actions button {
+  border: 1px solid var(--border);
+  background: var(--page);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.row-actions button:hover { color: var(--text-primary); }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.detail-field { font-size: 0.78rem; }
+.detail-field .k { color: var(--text-muted); }
+.detail-field .v { font-variant-numeric: tabular-nums; color: var(--text-primary); }
+
 .table-scroll { overflow-x: auto; }
 
 table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
