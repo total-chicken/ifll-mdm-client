@@ -16,7 +16,11 @@ const state = {
   status: '',
   sortKey: null,
   sortDir: 1,
+  meters: [],
+  expandedMeterId: null,
 };
+
+const METER_TAB_ID = 'meter-register';
 
 // --- Static data loading (this is the GitHub Pages mirror: no server, so
 // the same row-shaping logic server/index.js does at request time runs
@@ -99,7 +103,8 @@ function formatNumber(n, digits = 1) {
 function renderTabs() {
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = '';
-  state.sheets.forEach((sheet) => {
+  const allTabs = [...state.sheets, { id: METER_TAB_ID, label: 'METER REGISTER DATA' }];
+  allTabs.forEach((sheet) => {
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (sheet.id === state.activeSheetId ? ' active' : '');
     btn.textContent = sheet.label;
@@ -268,8 +273,110 @@ function renderBadge() {
   document.getElementById('sourceBadge').textContent = 'sample xlsx data — static GitHub Pages build, MDM endpoint not yet wired';
 }
 
+// --- Meter register (read-only static snapshot) ---
+
+function getGridData(entry) {
+  return entry.lastResult?.gridData || [];
+}
+
+function parseBillingDate(str) {
+  const m = String(str || '').trim().match(/^(\d{2})-(\d{2})-(\d{4})/);
+  if (!m) return null;
+  return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+}
+
+function latestReading(entry) {
+  const grid = getGridData(entry);
+  if (!grid.length) return null;
+  return grid.slice().sort((a, b) => {
+    const da = parseBillingDate(a['billing Date']);
+    const db = parseBillingDate(b['billing Date']);
+    return (db?.getTime() || 0) - (da?.getTime() || 0);
+  })[0];
+}
+
+function clean(v) {
+  if (v === undefined || v === null) return '—';
+  const s = String(v).trim();
+  return s === '' ? '—' : s;
+}
+
+async function loadMeters() {
+  try {
+    const res = await fetch('data/meter-registry.json');
+    const text = await res.text();
+    state.meters = JSON.parse(text.replace(/^﻿/, ''));
+  } catch {
+    state.meters = [];
+  }
+}
+
+function renderMeterTable() {
+  const body = document.getElementById('meterTableBody');
+  if (!state.meters.length) {
+    body.innerHTML = '<tr><td colspan="7" class="stat-label">No meters in this snapshot yet.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = state.meters.map((m) => {
+    const reading = latestReading(m);
+    return `
+      <tr class="meter-table-row" data-meter="${m.meterId}">
+        <td>${m.meterId}</td>
+        <td>${clean(m.label)}</td>
+        <td>${m.lastFetchedAt ? new Date(m.lastFetchedAt).toLocaleString() : 'never'}</td>
+        <td>${clean(reading?.['billing Date'])}</td>
+        <td>${clean(reading?.['energy KWH'])}</td>
+        <td>${clean(reading?.['md kW'])}</td>
+        <td>${clean(reading?.['billing Tamper Count'])}</td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('tr[data-meter]').forEach((tr) => {
+    tr.addEventListener('click', () => {
+      const id = tr.dataset.meter;
+      state.expandedMeterId = state.expandedMeterId === id ? null : id;
+      renderMeterDetail();
+    });
+  });
+}
+
+function renderMeterDetail() {
+  const panel = document.getElementById('meterDetailPanel');
+  if (!state.expandedMeterId) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+
+  const entry = state.meters.find((m) => m.meterId === state.expandedMeterId);
+  const reading = entry && latestReading(entry);
+
+  panel.style.display = '';
+  if (!reading) {
+    panel.innerHTML = `<h2 class="panel-title">${state.expandedMeterId}</h2><p class="stat-label">No data in this snapshot for this meter.</p>`;
+    return;
+  }
+
+  const fields = Object.entries(reading).filter(([k]) => k !== 'meter ID');
+  panel.innerHTML = `
+    <h2 class="panel-title">${state.expandedMeterId} — latest billing cycle (${clean(reading['billing Date'])})</h2>
+    <div class="detail-grid">
+      ${fields.map(([k, v]) => `<div class="detail-field"><div class="k">${k}</div><div class="v">${clean(v)}</div></div>`).join('')}
+    </div>
+  `;
+}
+
 function render() {
   renderTabs();
+
+  const onMeterTab = state.activeSheetId === METER_TAB_ID;
+  document.getElementById('reportView').style.display = onMeterTab ? 'none' : '';
+  document.getElementById('meterRegisterView').style.display = onMeterTab ? '' : 'none';
+
+  if (onMeterTab) {
+    renderMeterTable();
+    renderMeterDetail();
+    return;
+  }
+
   renderStats();
   renderMeterList();
   populateDivisionFilter();
@@ -290,6 +397,7 @@ async function init() {
   });
   document.querySelector('.chip[data-status=""]').classList.add('active');
 
+  await loadMeters();
   const data = await loadAllSheets();
   state.sheets = data.sheets;
   state.activeSheetId = data.sheets[0]?.id;
