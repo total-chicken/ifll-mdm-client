@@ -42,7 +42,15 @@ expires, run `npm run login` again with a new OTP.
 `MDM_API_BASE` (default `/urjaservice`). Add specific read endpoints here
 once their headers/payload/response shapes are provided.
 
-## Line-loss dashboard
+## Apps Script edition (recommended over the static Pages build)
+
+`apps-script/` is the same dashboard as a Google Apps Script web app —
+runs from a URL, not `localhost`, but keeps the live MDM session
+server-side (Script Properties + `UrlFetchApp`) instead of in public
+client-side JS. Deployment access defaults to "Only myself". See
+`apps-script/README.md` for the URL and details.
+
+## Line-loss dashboard (local, Node/Express)
 
 ```
 npm run dashboard        # http://localhost:5050

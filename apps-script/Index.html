@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Stylesheet'); ?>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Line Loss Dashboard</h1>
+      <p class="subtitle">DVVNL &middot; Genus URJA+ MDM</p>
+    </div>
+    <div class="topbar-actions">
+      <span id="sessionBadge" class="badge badge-muted">checking session…</span>
+      <button id="themeToggle" class="btn-icon" title="Toggle theme" aria-label="Toggle theme">&#9680;</button>
+    </div>
+  </header>
+
+  <section class="panel" id="loginPanel" style="display:none">
+    <h2 class="panel-title">Log in to MDM</h2>
+    <div class="login-form">
+      <div class="field">
+        <label for="loginUsername">Username</label>
+        <input id="loginUsername" class="text-input" type="text" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" class="text-input" type="password" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="loginOtp">Current 6-digit OTP</label>
+        <input id="loginOtp" class="text-input" type="text" inputmode="numeric" maxlength="6" style="width:100px">
+      </div>
+      <button id="loginBtn" class="btn-text">Log in</button>
+    </div>
+    <p class="login-note">This account has MFA enforced, so a fresh code from the authenticator app is needed each time the session needs to be (re-)established. Username/password are stored in this script's Script Properties (visible only to script editors, never to the page's client-side code).</p>
+    <p class="error-text" id="loginError" style="display:none"></p>
+  </section>
+
+  <nav class="tabs" id="tabs" role="tablist" style="display:none"></nav>
+
+  <main id="mainView" style="display:none">
+    <div id="reportView">
+      <section class="stat-row" id="statRow"></section>
+
+      <section class="panel" id="topOffenders">
+        <h2 class="panel-title">Highest line loss</h2>
+        <div class="meter-list" id="meterList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="table-toolbar">
+          <input id="searchBox" type="search" placeholder="Search feeder, code, meter no…" class="search-input">
+          <select id="divisionFilter" class="filter-select">
+            <option value="">All divisions</option>
+          </select>
+          <div class="status-chips" id="statusChips">
+            <button class="chip" data-status="">All</button>
+            <button class="chip" data-status="good">Good</button>
+            <button class="chip" data-status="warning">Warning</button>
+            <button class="chip" data-status="critical">Critical</button>
+            <button class="chip" data-status="pending">Pending data</button>
+            <button class="chip" data-status="error">Error</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <p class="row-count" id="rowCount"></p>
+      </section>
+    </div>
+
+    <div id="meterRegisterView" style="display:none">
+      <section class="panel">
+        <div class="table-toolbar">
+          <button id="addMeterBtn" class="btn-text">+ Add meter</button>
+          <button id="refreshAllBtn" class="btn-text secondary">Refresh all</button>
+          <span class="stat-label" id="meterRegisterHint">Live data, fetched with your logged-in MDM session.</span>
+        </div>
+        <div class="table-scroll">
+          <table id="meterTable">
+            <thead>
+              <tr>
+                <th>Meter ID</th>
+                <th>Label</th>
+                <th>Last fetched</th>
+                <th>Billing date</th>
+                <th>Energy KWH</th>
+                <th>MD kW</th>
+                <th>Tamper count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="meterTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel" id="meterDetailPanel" style="display:none"></section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span id="generatedAt"></span>
+  </footer>
+</div>
+
+<?!= include('JavaScript'); ?>
+</body>
+</html>
